@@ -13,20 +13,28 @@ const io = new Server(server, {
   }
 });
 
+const SECRET_KEY = 'SRV2025'; // same as frontend
+
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  socket.on('join_room', (roomCode) => {
-    socket.join(roomCode);
-    console.log(`User ${socket.id} joined room: ${roomCode}`);
+  socket.on('join_secret_room', (secret) => {
+    if (secret === SECRET_KEY) {
+      socket.join(SECRET_KEY);
+      console.log(`User ${socket.id} joined secret room`);
+    } else {
+      console.log(`User ${socket.id} tried to join with invalid secret`);
+      socket.disconnect(); // or just ignore
+    }
   });
 
   socket.on('send_notification', (data) => {
-    const { room, title } = data;
-    if (!room || !title) return;
-
-    console.log(`Sending to ${room}: ${title}`);
-    socket.to(room).emit('receive_notification', { title });
+    if (data.secret === SECRET_KEY) {
+      console.log('Sending notification:', data.title);
+      socket.to(SECRET_KEY).emit('receive_notification', { title: data.title });
+    } else {
+      console.log('Unauthorized attempt to send notification.');
+    }
   });
 
   socket.on('disconnect', () => {
@@ -42,4 +50,3 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
